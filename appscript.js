@@ -878,6 +878,9 @@ function doPost(e) {
       case "save_affiliate_pixel": return jsonRes(saveAffiliatePixel(data));
       case "get_admin_orders": return jsonRes(getAdminOrders(data));
       case "get_admin_users": return jsonRes(getAdminUsers(data));
+      case "get_courses": return jsonRes(getCourses(data, cfg));
+      case "save_course": return jsonRes(saveCourse(data));
+      case "delete_course": return jsonRes(deleteCourse(data));
 
       // DIAGNOSTIC & MONITORING ACTIONS
       case "get_email_logs":
@@ -3758,6 +3761,103 @@ function testLunasNotification(d) {
         email: emailResult
       }
     };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   VIDEO COURSE MANAGEMENT
+========================= */
+
+function mustCourseSheet_() {
+  let s = ss.getSheetByName("Courses");
+  if (!s) {
+    s = ss.insertSheet("Courses");
+    s.appendRow(["id", "title", "description", "youtube_url", "video_id", "category", "status", "thumbnail_url", "created_at", "updated_at"]);
+    s.setFrozenRows(1);
+  }
+  return s;
+}
+
+function getCourses(d, cfg) {
+  try {
+    requireAdminSession_(d, { actionName: "get_courses" });
+    const s = mustCourseSheet_();
+    const data = s.getDataRange().getValues();
+    const courses = [];
+    for (let i = 1; i < data.length; i++) {
+      courses.push({
+        id: String(data[i][0]),
+        title: String(data[i][1]),
+        description: String(data[i][2]),
+        youtube_url: String(data[i][3]),
+        video_id: String(data[i][4]),
+        category: String(data[i][5]),
+        status: String(data[i][6]),
+        thumbnail_url: String(data[i][7]),
+        created_at: String(data[i][8]),
+        updated_at: String(data[i][9])
+      });
+    }
+    return { status: "success", data: courses };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function saveCourse(d) {
+  try {
+    requireAdminSession_(d, { actionName: "save_course" });
+    const s = mustCourseSheet_();
+    const isEdit = String(d.is_edit) === "true";
+    const now = new Date().toISOString();
+    
+    const rowData = [
+      String(d.id).trim(),
+      normalizePlainText_(d.title),
+      normalizePlainText_(d.description),
+      String(d.youtube_url).trim(),
+      String(d.video_id).trim(),
+      normalizePlainText_(d.category),
+      normalizePlainText_(d.status || "Draft"),
+      String(d.thumbnail_url).trim(),
+      isEdit ? String(d.created_at) : now,
+      now
+    ];
+
+    if (isEdit) {
+      const data = s.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][0]) === String(d.id)) {
+          s.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
+          return withPublicCacheState_({ status: "success", message: "Course berhasil diperbarui" }, bumpPublicCacheState_(["dashboard"]));
+        }
+      }
+      return { status: "error", message: "Course ID tidak ditemukan" };
+    } else {
+      s.appendRow(rowData);
+      return withPublicCacheState_({ status: "success", message: "Course berhasil ditambahkan" }, bumpPublicCacheState_(["dashboard"]));
+    }
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function deleteCourse(d) {
+  try {
+    requireAdminSession_(d, { actionName: "delete_course" });
+    const s = mustCourseSheet_();
+    const data = s.getDataRange().getValues();
+    const id = String(d.id).trim();
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === id) {
+        s.deleteRow(i + 1);
+        return withPublicCacheState_({ status: "success", message: "Course berhasil dihapus" }, bumpPublicCacheState_(["dashboard"]));
+      }
+    }
+    return { status: "error", message: "Course tidak ditemukan" };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
