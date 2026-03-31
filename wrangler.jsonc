@@ -1,8 +1,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "syuraamyid",
+  "name": "syuraa.my.id",
   "main": "_worker.js",
   "compatibility_date": "2025-09-27",
+  "routes": [
+    {
+      "pattern": "syuraa.my.id/*",
+      "zone_name": "syuraa.my.id"
+    },
+    {
+      "pattern": "www.syuraa.my.id/*",
+      "zone_name": "syuraa.my.id"
+    }
+  ],
   "observability": {
     "enabled": true
   },
@@ -16,8 +26,8 @@
   ],
   "vars": {
     "ALLOWED_ORIGINS": "https://syuraa.my.id,https://www.syuraa.my.id",
-    "APP_GAS_URL": "https://script.google.com/macros/s/AKfycbyc09s-WMXSn5o60NOOcuCfb_Iu6_tG-Xjst7TxZB-RVOJjdlW47oysRyXemgvaskil2Q/exec",
-    "MOOTA_GAS_URL": "ISI LINK WEB APP GAS",
+    "APP_GAS_URL": "https://script.google.com/macros/s/AKfycbzyiJVzG5kzm9dt4LCHFJuPedRX4rVRCGb_1fZ2hywDMW75YfNvPISozIc0U69qCQRO/exec",
+    "MOOTA_GAS_URL": "https://script.google.com/macros/s/AKfycbzyiJVzG5kzm9dt4LCHFJuPedRX4rVRCGb_1fZ2hywDMW75YfNvPISozIc0U69qCQRO/exec",
     "MOOTA_TOKEN": "TOKEN MOOTA"
   }
 }
