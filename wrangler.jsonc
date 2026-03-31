@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "syuraamyid",
+  "main": "_worker.js",
+  "compatibility_date": "2025-09-27",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://syuraa.my.id,https://www.syuraa.my.id",
+    "APP_GAS_URL": "https://script.google.com/macros/s/AKfycbyc09s-WMXSn5o60NOOcuCfb_Iu6_tG-Xjst7TxZB-RVOJjdlW47oysRyXemgvaskil2Q/exec",
+    "MOOTA_GAS_URL": "ISI LINK WEB APP GAS",
+    "MOOTA_TOKEN": "TOKEN MOOTA"
+  }
+}
