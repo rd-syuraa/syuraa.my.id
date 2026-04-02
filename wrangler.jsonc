@@ -3,17 +3,7 @@
   "name": "syuraa.my.id",
   "main": "_worker.js",
   "compatibility_date": "2025-09-27",
-  "routes": [
-    {
-      "pattern": "syuraa.my.id/*",
-      "zone_name": "syuraa.my.id"
-    },
-    {
-      "pattern": "www.syuraa.my.id/*",
-      "zone_name": "syuraa.my.id"
-    }
-  ],
-  "observability": {
+    "observability": {
     "enabled": true
   },
   "assets": {
