@@ -7,11 +7,11 @@
   "routes": [
     {
       "pattern": "syuraamyid/*",
-      "zone_name": "syuraamyid"
+      "zone_name": "syuraa.my.id"
     },
     {
       "pattern": "www.syuraa.my.id/*",
-      "zone_name": "syuraamyid"
+      "zone_name": "syuraa.my.id"
     }
   ],
   "observability": {
