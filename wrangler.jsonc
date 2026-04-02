@@ -1,7 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // wrangler.jsonc
-  "name": "syuraamyid",
+  "name": "syuraa.my.id",
   "main": "_worker.js",
   "compatibility_date": "2025-09-27",
   "routes": [
