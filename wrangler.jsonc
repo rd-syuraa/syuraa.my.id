@@ -1,16 +1,17 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "syuraa.my.id",
+  // wrangler.jsonc
+  "name": "syuraamyid",
   "main": "_worker.js",
   "compatibility_date": "2025-09-27",
   "routes": [
     {
-      "pattern": "syuraa.my.id/*",
-      "zone_name": "syuraa.my.id"
+      "pattern": "syuraamyid/*",
+      "zone_name": "syuraamyid"
     },
     {
       "pattern": "www.syuraa.my.id/*",
-      "zone_name": "syuraa.my.id"
+      "zone_name": "syuraamyid"
     }
   ],
   "observability": {
