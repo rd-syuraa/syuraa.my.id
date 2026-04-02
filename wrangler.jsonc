@@ -26,8 +26,8 @@
   ],
   "vars": {
     "ALLOWED_ORIGINS": "https://syuraa.my.id,https://www.syuraa.my.id",
-    "APP_GAS_URL": "https://script.google.com/macros/s/AKfycbzyiJVzG5kzm9dt4LCHFJuPedRX4rVRCGb_1fZ2hywDMW75YfNvPISozIc0U69qCQRO/exec",
-    "MOOTA_GAS_URL": "https://script.google.com/macros/s/AKfycbzyiJVzG5kzm9dt4LCHFJuPedRX4rVRCGb_1fZ2hywDMW75YfNvPISozIc0U69qCQRO/exec",
+    "APP_GAS_URL": "https://script.google.com/macros/s/AKfycbyTZL296wRcbx-C_yaC3FJZIuXwdJh6Gm4w5Z-dg8FezUXppBW89KWJ0z5TqA6FHV6B/exec",
+    "MOOTA_GAS_URL": "https://script.google.com/macros/s/AKfycbyTZL296wRcbx-C_yaC3FJZIuXwdJh6Gm4w5Z-dg8FezUXppBW89KWJ0z5TqA6FHV6B/exec",
     "MOOTA_TOKEN": "TOKEN MOOTA"
   }
 }

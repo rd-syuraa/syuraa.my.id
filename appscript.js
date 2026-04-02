@@ -881,6 +881,7 @@ function doPost(e) {
       case "get_courses": return jsonRes(getCourses(data, cfg));
       case "save_course": return jsonRes(saveCourse(data));
       case "delete_course": return jsonRes(deleteCourse(data));
+      case "get_member_courses": return jsonRes(getMemberCourses(data, cfg));
 
       // DIAGNOSTIC & MONITORING ACTIONS
       case "get_email_logs":
@@ -3858,6 +3859,50 @@ function deleteCourse(d) {
       }
     }
     return { status: "error", message: "Course tidak ditemukan" };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function getMemberCourses(d, cfg) {
+  try {
+    const email = String(d.email || "").trim().toLowerCase();
+    if (!email) throw new Error("Email wajib diisi");
+
+    // 1. Ambil list ID Produk yang sudah Lunas oleh member ini
+    const orders = mustSheet_("Orders").getDataRange().getValues();
+    const lunasProductIds = [];
+    for (let i = 1; i < orders.length; i++) {
+      if (String(orders[i][1]).toLowerCase() === email && String(orders[i][7]) === "Lunas") {
+        lunasProductIds.push(String(orders[i][4]));
+      }
+    }
+
+    // 2. Jika tidak ada pembelian, kembalikan kosong
+    if (lunasProductIds.length === 0) return { status: "success", data: [] };
+
+    // 3. Ambil data E-Course (Sheet Courses)
+    const s = mustCourseSheet_();
+    const data = s.getDataRange().getValues();
+    const allCourses = [];
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][6]) === "Published") { // Hanya yang sudah dipublish
+        allCourses.push({
+          id: String(data[i][0]),
+          title: String(data[i][1]),
+          description: String(data[i][2]),
+          video_id: String(data[i][4]),
+          category: String(data[i][5]),
+          thumbnail_url: String(data[i][7]),
+          created_at: String(data[i][8])
+        });
+      }
+    }
+
+    // 4. Integrasi: Saat ini kita asumsikan semua e-course terbuka untuk member yang sudah membeli produk apapun
+    // Jika ingin lebih spesifik (misal: Course A hanya untuk Produk A), kita perlu mapping di Access_Rules.
+    // Untuk MVP, kita tampilkan semua e-course Published kepada member yang sudah Lunas minimal 1 order.
+    return { status: "success", data: allCourses };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
