@@ -9,7 +9,6 @@
     <link rel="dns-prefetch" href="https://script.google.com">
     <script src="site.config.js"></script>
     <script src="config.js?v=2026_1"></script>
-    <script src="scripts/admin-forgot-password.js"></script>
     <script>
         // NOTE: This is intentionally defined early (in this <head> script)
         // because other early boot scripts call it before the main app script
@@ -2043,19 +2042,9 @@
                 .filter((v, i, arr) => arr.indexOf(v) === i);
         }
 
-        const forgotPasswordToolkit = (typeof window !== 'undefined' && window.AdminForgotPassword)
-            ? window.AdminForgotPassword
-            : null;
-
         function bindForgotPasswordTrigger() {
             const trigger = document.getElementById('btn-forgot-open-admin');
             if (!trigger) return false;
-            if (forgotPasswordToolkit && typeof forgotPasswordToolkit.bindForgotPasswordTrigger === 'function') {
-                return forgotPasswordToolkit.bindForgotPasswordTrigger({
-                    trigger,
-                    onOpen: () => toggleForgotPasswordModal(true)
-                });
-            }
             if (trigger.dataset.boundForgotTrigger === '1') return true;
 
             const onTriggerClick = (event) => {
@@ -2278,19 +2267,6 @@
             };
 
             forgotFormAdmin.onsubmit = localForgotPasswordSubmit;
-            if (forgotPasswordToolkit && typeof forgotPasswordToolkit.createSubmitHandler === 'function') {
-                forgotFormAdmin.onsubmit = forgotPasswordToolkit.createSubmitHandler({
-                    form: forgotFormAdmin,
-                    button: document.getElementById('btn-forgot-admin'),
-                    emailInput: document.getElementById('adm-email-forgot'),
-                    getEndpoints: getLoginEndpoints,
-                    loginRequest,
-                    pushAuthTelemetry,
-                    showToast,
-                    closeModal: () => toggleForgotPasswordModal(false),
-                    refreshIcons: () => lucide.createIcons()
-                });
-            }
         }
 
         let currentOrderPage = 1;
