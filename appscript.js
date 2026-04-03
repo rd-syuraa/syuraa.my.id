@@ -1566,7 +1566,7 @@ function createOrder(d, cfg) {
       Logger.log("WARNING: WA number normalization failed for: " + waRaw);
     }
 
-    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+    const siteName = getCfgFrom_(cfg, "site_name") || "Syuraa";
     const siteUrl = String(getCfgFrom_(cfg, "site_url") || "").trim();
     const loginUrl = siteUrl ? (siteUrl + "/login.html") : "Link Login Belum Disetting";
 
@@ -1798,7 +1798,7 @@ function updateOrderStatus(d, cfg) {
     const uS = mustSheet_("Users"); // kept for compatibility (even if not used)
     const pS = mustSheet_("Access_Rules");
     const r = s.getDataRange().getValues();
-    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+    const siteName = getCfgFrom_(cfg, "site_name") || "Syuraa";
 
     let orderFound = false, uEmail = "", uName = "", pId = "", pName = "", uWA = "";
     const newStatus = d.status || "Lunas";
@@ -3203,7 +3203,7 @@ function handleMootaWebhook(mutations, cfg) {
 
     const s = mustSheet_("Orders");
     const orders = s.getDataRange().getValues();
-    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+    const siteName = getCfgFrom_(cfg, "site_name") || "Syuraa";
     const adminWA = getCfgFrom_(cfg, "wa_admin");
 
     const MAX_AGE_HOURS = 72; // Extended from 48 to 72 hours for better matching
@@ -3375,7 +3375,7 @@ function forgotPassword(d) {
     const r = s.getDataRange().getValues();
     const email = String(d.email).trim().toLowerCase();
     const cfg = getSettingsMap_();
-    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+    const siteName = getCfgFrom_(cfg, "site_name") || "Syuraa";
     
     let found = false;
     let nama = "";

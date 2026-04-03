@@ -31,5 +31,11 @@ var SITE_CONFIG = {
     ALLOW_PAGES_DEV: true,
 
     // ── Local Development ──────────────────────────────────
-    ALLOW_LOCALHOST: true
+    ALLOW_LOCALHOST: true,
+
+    // ── Branding ──────────────────────────────────────────
+    BRAND_NAME: 'Syuraa',
+    APP_NAME: 'Syuraa',
+    SITE_TITLE: 'Syuraa - Solusi Jualan Digital Cepat & Tertata',
+    SITE_DESCRIPTION: 'Syuraa menyediakan template, toolkit, dan sistem siap pakai untuk membantu proses jualan digital Anda terasa lebih cepat dan tertata.'
 };
