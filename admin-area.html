@@ -1381,11 +1381,11 @@
                 <input type="hidden" id="c-thumbnail">
                 <input type="hidden" id="c-created-at">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-5">
                         <div>
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Judul Course (Maks 100 Karakter)</label>
-                            <input type="text" id="c-title" maxlength="100" placeholder="Contoh: Pengenalan Dasar Digital Marketing" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold transition-all" required>
+                            <input type="text" id="c-title" maxlength="100" oninput="document.getElementById('c-title-count').innerText = this.value.length + '/100'" placeholder="Contoh: Pengenalan Dasar Digital Marketing" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold transition-all" required>
+                            <p id="c-title-count" class="text-[10px] text-right text-slate-400 mt-1 mr-1">0/100</p>
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Kategori</label>
@@ -1405,11 +1405,11 @@
                             </div>
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Thumbnail URL (Opsional)</label>
-                            <input type="url" id="c-thumbnail-manual" placeholder="Kosongkan untuk auto-generate dari YouTube" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Thumbnail Khusus (Opsional)</label>
+                            <input type="url" id="c-thumbnail-manual" oninput="updateCourseVideoPreview()" placeholder="URL gambar khusus (biarkan kosong untuk auto YouTube)" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Status</label>
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Status Publikasi</label>
                             <div class="flex gap-4">
                                 <label class="cursor-pointer flex items-center gap-2">
                                     <input type="radio" name="c-status" value="Published" class="peer sr-only" checked>
@@ -1431,12 +1431,19 @@
 
                     <div class="space-y-5">
                         <div>
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Deskripsi Course</label>
-                            <textarea id="c-desc" rows="4" placeholder="Jelaskan isi video ini secara singkat..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all custom-scroll" required></textarea>
+                            <div class="flex justify-between items-center mb-2 ml-1">
+                                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Deskripsi Course</label>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="formatDesc('b')" class="p-1 hover:bg-slate-100 rounded text-slate-500" title="Bold"><b>B</b></button>
+                                    <button type="button" onclick="formatDesc('i')" class="p-1 hover:bg-slate-100 rounded text-slate-500" title="Italic"><i>I</i></button>
+                                    <button type="button" onclick="formatDesc('br')" class="p-1 hover:bg-slate-100 rounded text-slate-500" title="New Line">↵</button>
+                                </div>
+                            </div>
+                            <textarea id="c-desc" rows="6" placeholder="Jelaskan isi video ini secara singkat..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all custom-scroll" required></textarea>
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Video Preview</label>
-                            <div id="course-video-preview-container" class="aspect-video bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center relative group">
+                            <div id="course-video-preview-container" class="aspect-video bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center relative group shadow-inner">
                                 <div id="course-preview-placeholder" class="text-center p-6">
                                     <i data-lucide="play-circle" class="w-12 h-12 text-slate-300 mx-auto mb-2"></i>
                                     <p class="text-xs text-slate-400">Masukkan URL YouTube untuk melihat preview</p>
@@ -1449,7 +1456,9 @@
 
                 <div class="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
                     <button type="button" onclick="closeModal('modal-course')" class="font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-4">BATAL</button>
-                    <button type="submit" class="bg-indigo-600 text-white px-10 py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all text-xs uppercase tracking-wide">Simpan Course</button>
+                    <button type="submit" id="btn-save-course" class="bg-indigo-600 text-white px-10 py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all text-xs uppercase tracking-wide flex items-center gap-2">
+                        <span id="save-course-text">Simpan Course</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -1463,11 +1472,40 @@
         let courseSortBy = 'hits';
         let courseSortOrder = 'desc';
 
+        function formatDesc(type) {
+            const textarea = document.getElementById('c-desc');
+            if (!textarea) return;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            const selected = text.substring(start, end);
+            let replacement = '';
+
+            if (type === 'b') replacement = `<b>${selected}</b>`;
+            else if (type === 'i') replacement = `<i>${selected}</i>`;
+            else if (type === 'br') replacement = `<br>\n`;
+
+            textarea.value = text.substring(0, start) + replacement + text.substring(end);
+            textarea.focus();
+            const newPos = start + (type === 'br' ? 5 : replacement.length);
+            textarea.setSelectionRange(newPos, newPos);
+        }
+
         function extractYoutubeId(url) {
             if (!url) return null;
+            // Handle various YouTube URL formats
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+            if (match && match[2].length === 11) {
+                return match[2];
+            }
+            // Handle shorts
+            const shortsRegExp = /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/;
+            const shortsMatch = url.match(shortsRegExp);
+            if (shortsMatch && shortsMatch[1].length === 11) {
+                return shortsMatch[1];
+            }
+            return null;
         }
 
         function updateCourseVideoPreview() {

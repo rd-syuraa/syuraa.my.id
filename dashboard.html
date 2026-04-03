@@ -472,14 +472,25 @@
                                 <p class="text-sm text-slate-400 font-medium">Akses semua konten video pembelajaran Anda.</p>
                             </div>
                         </div>
-                        <div class="relative w-full md:w-72">
-                            <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="text" id="member-course-search" oninput="filterMemberCourses()" placeholder="Cari judul course..." class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm">
+                        <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                            <div class="relative w-full sm:w-48">
+                                <i data-lucide="filter" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <select id="member-course-category" onchange="filterMemberCourses()" class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 outline-none appearance-none transition-all shadow-sm font-bold text-slate-700">
+                                    <option value="all">Semua Kategori</option>
+                                </select>
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                            <div class="relative w-full md:w-72">
+                                <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="text" id="member-course-search" oninput="filterMemberCourses()" placeholder="Cari judul course..." class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm">
+                            </div>
                         </div>
                     </div>
 
                     <div id="member-course-container">
-                        <div id="list-member-courses" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                        <div id="list-member-courses" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
                             <!-- Skeleton -->
                             <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden h-full flex flex-col">
                                 <div class="aspect-video skeleton"></div>
@@ -491,6 +502,19 @@
                                     <div class="mt-auto h-12 w-full skeleton rounded-2xl"></div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- PAGINATION -->
+                        <div id="member-course-pagination" class="flex items-center justify-center gap-2 py-8 border-t border-slate-100 hidden">
+                            <button onclick="changePage(-1)" id="btn-prev-page" class="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all shadow-sm disabled:opacity-50 disabled:pointer-events-none">
+                                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                            </button>
+                            <div id="page-numbers" class="flex items-center gap-2">
+                                <!-- Page numbers will be injected here -->
+                            </div>
+                            <button onclick="changePage(1)" id="btn-next-page" class="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all shadow-sm disabled:opacity-50 disabled:pointer-events-none">
+                                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -1162,7 +1186,12 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
                 if (r.status === 'success') {
                     cachedMemberCourses = r.data || [];
-                    renderMemberCourses(cachedMemberCourses);
+                    filteredMemberCourses = [...cachedMemberCourses];
+                    updateMemberCategoryFilter();
+                    renderMemberCourses(filteredMemberCourses);
+                    
+                    // New Course Notification
+                    checkNewCourseNotification(cachedMemberCourses);
                 } else {
                     showToast('Gagal memuat course: ' + r.message, 'error');
                 }
@@ -1171,28 +1200,48 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             }
         }
 
+        function checkNewCourseNotification(courses) {
+            if (!courses || courses.length === 0) return;
+            const latestCourse = courses[0]; // Already sorted by created_at desc in backend
+            const lastNotifiedId = localStorage.getItem('last_notified_course_id');
+            
+            if (lastNotifiedId && lastNotifiedId !== latestCourse.id) {
+                showToast(`🎉 Ada course baru: ${latestCourse.title}`, 'success');
+            }
+            localStorage.setItem('last_notified_course_id', latestCourse.id);
+        }
+
+        let cachedMemberCourses = [];
+        let filteredMemberCourses = [];
+        let memberCoursePage = 1;
+        const memberCourseLimit = 6;
+
         function renderMemberCourses(courses) {
             const list = document.getElementById('list-member-courses');
+            const paginationEl = document.getElementById('member-course-pagination');
             if (!list) return;
 
-            if (courses.length === 0) {
+            if (!courses || courses.length === 0) {
+                if (paginationEl) paginationEl.classList.add('hidden');
                 list.innerHTML = `
                     <div class="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
                         <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
                             <i data-lucide="video-off" class="w-10 h-10"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-800 mb-2">Belum Ada Course Aktif</h3>
-                        <p class="text-slate-400 max-w-xs mx-auto text-sm">Beli produk digital kami untuk membuka akses video pembelajaran premium.</p>
-                        <button onclick="switchSection('products')" class="mt-8 bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
-                            Lihat Katalog Produk
-                        </button>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Tidak Ada Course Ditemukan</h3>
+                        <p class="text-slate-400 max-w-xs mx-auto text-sm">Coba cari dengan kata kunci lain atau pilih kategori berbeda.</p>
                     </div>
                 `;
                 lucide.createIcons();
                 return;
             }
 
-            list.innerHTML = courses.map(c => `
+            // Slice for pagination
+            const start = (memberCoursePage - 1) * memberCourseLimit;
+            const end = start + memberCourseLimit;
+            const paginated = courses.slice(start, end);
+
+            list.innerHTML = paginated.map(c => `
                 <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden h-full flex flex-col group fade-in-up">
                     <div class="relative aspect-video overflow-hidden">
                         <img src="${c.thumbnail_url || `https://img.youtube.com/vi/${c.video_id}/maxresdefault.jpg`}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onerror="this.src='https://img.youtube.com/vi/${c.video_id}/mqdefault.jpg'">
@@ -1224,17 +1273,74 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                     </div>
                 </div>
             `).join('');
+            
+            renderPagination(courses.length);
             lucide.createIcons();
         }
 
         function filterMemberCourses() {
-            const query = document.getElementById('member-course-search').value.toLowerCase();
-            const filtered = cachedMemberCourses.filter(c => 
-                c.title.toLowerCase().includes(query) || 
-                c.description.toLowerCase().includes(query) ||
-                c.category.toLowerCase().includes(query)
-            );
-            renderMemberCourses(filtered);
+            const queryInput = document.getElementById('member-course-search');
+            const categoryInput = document.getElementById('member-course-category');
+            const query = queryInput ? queryInput.value.toLowerCase() : '';
+            const category = categoryInput ? categoryInput.value : 'all';
+            
+            filteredMemberCourses = cachedMemberCourses.filter(c => {
+                const matchQuery = c.title.toLowerCase().includes(query) || 
+                                 c.description.toLowerCase().includes(query);
+                const matchCategory = category === 'all' || c.category === category;
+                return matchQuery && matchCategory;
+            });
+
+            memberCoursePage = 1;
+            renderMemberCourses(filteredMemberCourses);
+        }
+
+        function updateMemberCategoryFilter() {
+            const select = document.getElementById('member-course-category');
+            if (!select) return;
+            const categories = [...new Set(cachedMemberCourses.map(c => c.category))].filter(Boolean);
+            select.innerHTML = '<option value="all">Semua Kategori</option>' + 
+                categories.map(cat => `<option value="${escapeHtml(cat)}">${cat}</option>`).join('');
+        }
+
+        function renderPagination(totalItems) {
+            const paginationEl = document.getElementById('member-course-pagination');
+            const pageNumbersEl = document.getElementById('page-numbers');
+            const btnPrev = document.getElementById('btn-prev-page');
+            const btnNext = document.getElementById('btn-next-page');
+
+            if (!paginationEl || totalItems <= memberCourseLimit) {
+                if (paginationEl) paginationEl.classList.add('hidden');
+                return;
+            }
+
+            paginationEl.classList.remove('hidden');
+            const totalPages = Math.ceil(totalItems / memberCourseLimit);
+            
+            if (btnPrev) btnPrev.disabled = memberCoursePage === 1;
+            if (btnNext) btnNext.disabled = memberCoursePage === totalPages;
+
+            let pages = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const activeClass = i === memberCoursePage ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-600';
+                pages += `<button onclick="goToPage(${i})" class="w-10 h-10 md:w-12 md:h-12 rounded-2xl border font-bold text-sm transition-all shadow-sm ${activeClass}">${i}</button>`;
+            }
+            if (pageNumbersEl) pageNumbersEl.innerHTML = pages;
+        }
+
+        function goToPage(page) {
+            memberCoursePage = page;
+            renderMemberCourses(filteredMemberCourses);
+            const section = document.getElementById('section-courses');
+            if (section) section.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function changePage(dir) {
+            const totalPages = Math.ceil(filteredMemberCourses.length / memberCourseLimit);
+            const newPage = memberCoursePage + dir;
+            if (newPage >= 1 && newPage <= totalPages) {
+                goToPage(newPage);
+            }
         }
 
         function openVideoModal(courseId, videoId, title) {

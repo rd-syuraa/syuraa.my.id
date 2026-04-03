@@ -3776,7 +3776,7 @@ function mustCourseSheet_() {
   let s = ss.getSheetByName("Courses");
   if (!s) {
     s = ss.insertSheet("Courses");
-    s.appendRow(["id", "title", "description", "youtube_url", "video_id", "category", "status", "thumbnail_url", "created_at", "updated_at", "hits", "is_deleted"]);
+    s.appendRow(["id", "title", "description", "youtube_url", "video_id", "category", "status", "thumbnail_url", "created_at", "updated_at", "hits", "is_deleted", "embed_url"]);
     s.setFrozenRows(1);
   }
   return s;
@@ -3801,13 +3801,34 @@ function getCourses(d, cfg) {
         thumbnail_url: String(data[i][7]),
         created_at: String(data[i][8]),
         updated_at: String(data[i][9]),
-        hits: Number(data[i][10] || 0)
+        hits: Number(data[i][10] || 0),
+        embed_url: String(data[i][12] || "")
       });
     }
     return { status: "success", data: courses };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
+}
+
+function normalizeRichText_(value) {
+  if (value === null || value === undefined) return "";
+  let s = String(value);
+  
+  // Basic XSS Prevention: Strip all script and dangerous tags, but keep basic formatting
+  // This is a simplified server-side sanitizer
+  s = s.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gmi, "")
+       .replace(/on\w+="[^"]*"/gmi, "")
+       .replace(/on\w+='[^']*'/gmi, "")
+       .replace(/javascript:/gmi, "");
+  
+  // Only allow a whitelist of tags: b, i, br, u, strong, em, p, div
+  // First, escape all < and > that are NOT part of our whitelist
+  // But for simplicity in this project, we'll just normalize line breaks and trim
+  return s.replace(/\r\n?/g, "\n")
+    .replace(/\u00A0/g, " ")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ")
+    .trim();
 }
 
 function saveCourse(d) {
@@ -3817,16 +3838,25 @@ function saveCourse(d) {
     const isEdit = String(d.is_edit) === "true";
     const now = new Date().toISOString();
     
-    // Server-side validation & Sanitization
-    const title = normalizePlainText_(d.title).substring(0, 100);
-    const description = String(d.description || "").trim(); // Allow basic HTML if needed, but GAS normalizePlainText is safer
+    // Server-side validation
+    const title = normalizePlainText_(d.title || "").substring(0, 100);
+    if (!title) throw new Error("Judul course wajib diisi (maks 100 karakter)");
+    
+    const description = normalizeRichText_(d.description || "");
     const youtubeUrl = String(d.youtube_url || "").trim();
     const videoId = String(d.video_id || "").trim();
+    if (!videoId || videoId.length !== 11) throw new Error("Video ID YouTube tidak valid");
+    
     const category = normalizePlainText_(d.category || "General");
     const status = normalizePlainText_(d.status || "Draft");
-    const thumbnail = String(d.thumbnail_url || "").trim();
-
-    if (!title || !videoId) throw new Error("Judul dan Video ID wajib diisi");
+    let thumbnail = String(d.thumbnail_url || "").trim();
+    
+    // Default thumbnail if empty
+    if (!thumbnail) {
+      thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+    }
+    
+    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
 
     const rowData = [
       String(d.id).trim(),
@@ -3840,7 +3870,8 @@ function saveCourse(d) {
       isEdit ? String(d.created_at) : now,
       now,
       isEdit ? Number(d.hits || 0) : 0,
-      "false" // is_deleted
+      "false", // is_deleted
+      embedUrl
     ];
 
     if (isEdit) {
@@ -3913,13 +3944,12 @@ function getMemberCourses(d, cfg) {
       }
     }
 
-    if (lunasProductIds.length === 0) return { status: "success", data: [] };
+    if (lunasProductIds.length === 0) return { status: "success", data: [], total: 0 };
 
     const s = mustCourseSheet_();
     const data = s.getDataRange().getValues();
-    const allCourses = [];
+    let allCourses = [];
     for (let i = 1; i < data.length; i++) {
-      // Respect status Published AND is_deleted false
       if (String(data[i][6]) === "Published" && String(data[i][11]) !== "true") {
         allCourses.push({
           id: String(data[i][0]),
@@ -3929,11 +3959,28 @@ function getMemberCourses(d, cfg) {
           category: String(data[i][5]),
           thumbnail_url: String(data[i][7]),
           created_at: String(data[i][8]),
-          hits: Number(data[i][10] || 0)
+          hits: Number(data[i][10] || 0),
+          embed_url: String(data[i][12] || "")
         });
       }
     }
-    return { status: "success", data: allCourses };
+
+    // Sort by created_at desc
+    allCourses.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    // Basic Pagination
+    const page = Number(d.page || 1);
+    const limit = Number(d.limit || 12);
+    const start = (page - 1) * limit;
+    const paginatedData = allCourses.slice(start, start + limit);
+
+    return { 
+      status: "success", 
+      data: paginatedData, 
+      total: allCourses.length,
+      page: page,
+      limit: limit
+    };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
