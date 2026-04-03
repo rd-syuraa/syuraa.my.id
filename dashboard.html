@@ -1210,7 +1210,15 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                     <div class="p-8 flex flex-col flex-1">
                         <h3 class="text-lg font-extrabold text-slate-800 mb-3 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-2">${c.title}</h3>
                         <p class="text-sm text-slate-500 mb-8 flex-1 line-clamp-3 leading-relaxed">${c.description}</p>
-                        <button onclick="openVideoModal('${c.video_id}', '${escapeHtml(c.title)}')" class="w-full bg-slate-900 text-white hover:bg-indigo-600 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3">
+                        <div class="flex items-center justify-between mb-4 px-1">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i> ${c.hits || 0} Dilihat
+                            </p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5"></i> ${new Date(c.created_at).toLocaleDateString('id-ID', { day:'numeric', month:'short' })}
+                            </p>
+                        </div>
+                        <button onclick="openVideoModal('${c.id}', '${c.video_id}', '${escapeHtml(c.title)}')" class="w-full bg-slate-900 text-white hover:bg-indigo-600 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3">
                             <i data-lucide="play-circle" class="w-5 h-5"></i> Tonton Sekarang
                         </button>
                     </div>
@@ -1229,7 +1237,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             renderMemberCourses(filtered);
         }
 
-        function openVideoModal(videoId, title) {
+        function openVideoModal(courseId, videoId, title) {
             const modal = document.getElementById('modal-video-player');
             const iframe = document.getElementById('video-player-iframe');
             const titleEl = document.getElementById('video-player-title');
@@ -1242,6 +1250,18 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             modal.classList.add('flex');
             document.body.style.overflow = 'hidden';
             lucide.createIcons();
+
+            // Track Hit
+            trackHit(courseId);
+        }
+
+        async function trackHit(id) {
+            try {
+                await fetch(SCRIPT_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'track_course_hit', id: id }) 
+                });
+            } catch (e) { console.warn("Hit tracking failed", e); }
         }
 
         function closeVideoModal() {

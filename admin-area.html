@@ -688,7 +688,7 @@
                     <i data-lucide="file-text" class="w-5 h-5"></i> Halaman CMS
                 </button>
                 <button onclick="switchTab('courses')" id="nav-courses" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
-                    <i data-lucide="video" class="w-5 h-5"></i> Video Course
+                    <i data-lucide="video" class="w-5 h-5"></i> Input E-Course
                 </button>
                 <button onclick="switchTab('media')" id="nav-media" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
                     <i data-lucide="image" class="w-5 h-5"></i> Media Center
@@ -858,8 +858,8 @@
                 <div id="tab-courses" class="tab-content">
                     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
                         <div>
-                            <h3 class="font-bold text-slate-800 text-lg mb-1">Manajemen Video Course</h3>
-                            <p class="text-xs text-slate-500">Kelola konten video pembelajaran dengan embed YouTube.</p>
+                            <h3 class="font-bold text-slate-800 text-lg mb-1">Manajemen E-Course</h3>
+                            <p class="text-xs text-slate-500">Kelola konten video pembelajaran Syuraa.</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                             <div class="relative flex-1 lg:min-w-[300px]">
@@ -887,18 +887,12 @@
                                             </button>
                                         </th>
                                         <th class="px-8 py-5">Kategori</th>
+                                        <th class="px-8 py-5">Hits</th>
                                         <th class="px-8 py-5">Status</th>
-                                        <th class="px-8 py-5">
-                                            <button onclick="sortCourses('date')" class="flex items-center gap-1 hover:text-indigo-600">
-                                                Tanggal <i data-lucide="chevrons-up-down" class="w-3 h-3"></i>
-                                            </button>
-                                        </th>
                                         <th class="px-8 py-5 text-right">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody id="list-courses" class="divide-y divide-slate-100">
-                                    <!-- Course items will be injected here -->
-                                </tbody>
+                                <tbody id="list-courses" class="divide-y divide-slate-100"></tbody>
                             </table>
                         </div>
                     </div>
@@ -1391,8 +1385,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-5">
                         <div>
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Judul Course</label>
-                            <input type="text" id="c-title" placeholder="Contoh: Pengenalan Dasar Digital Marketing" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold transition-all" required>
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Judul Course (Maks 100 Karakter)</label>
+                            <input type="text" id="c-title" maxlength="100" placeholder="Contoh: Pengenalan Dasar Digital Marketing" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold transition-all" required>
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Kategori</label>
@@ -1410,7 +1404,10 @@
                                 <i data-lucide="youtube" class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-red-500"></i>
                                 <input type="url" id="c-url" oninput="updateCourseVideoPreview()" placeholder="https://www.youtube.com/watch?v=..." class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all" required>
                             </div>
-                            <p class="text-[10px] text-slate-400 mt-2 ml-1">Pastikan link YouTube valid agar preview & thumbnail muncul.</p>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Thumbnail URL (Opsional)</label>
+                            <input type="url" id="c-thumbnail-manual" placeholder="Kosongkan untuk auto-generate dari YouTube" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all">
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Status</label>
@@ -1464,7 +1461,7 @@
            VIDEO COURSE LOGIC
         ========================= */
         let cachedCourses = [];
-        let courseSortBy = 'date';
+        let courseSortBy = 'hits';
         let courseSortOrder = 'desc';
 
         function extractYoutubeId(url) {
@@ -1483,10 +1480,11 @@
             const placeholder = document.getElementById('course-preview-placeholder');
             const videoIdInput = document.getElementById('c-video-id');
             const thumbnailInput = document.getElementById('c-thumbnail');
+            const manualThumbnail = document.getElementById('c-thumbnail-manual').value;
 
             if (videoId) {
                 videoIdInput.value = videoId;
-                thumbnailInput.value = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                thumbnailInput.value = manualThumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
                 iframe.src = `https://www.youtube.com/embed/${videoId}`;
                 iframe.classList.remove('hidden');
                 placeholder.classList.add('hidden');
@@ -1552,7 +1550,7 @@
                 <tr class="hover:bg-slate-50 transition-colors group">
                     <td class="px-8 py-5">
                         <div class="w-32 aspect-video rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative">
-                            <img src="${c.thumbnail_url || `https://img.youtube.com/vi/${c.video_id}/mqdefault.jpg`}" class="w-full h-full object-cover" onerror="this.src='assets/seo/og-default.png'">
+                            <img src="${c.thumbnail_url}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='assets/seo/og-default.png'">
                             <div class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-all cursor-pointer" onclick="window.open('${c.youtube_url}', '_blank')">
                                 <i data-lucide="play" class="w-6 h-6 text-white drop-shadow-md"></i>
                             </div>
@@ -1566,10 +1564,10 @@
                         <span class="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-indigo-100">${escapeHtml(c.category)}</span>
                     </td>
                     <td class="px-8 py-5">
-                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border ${c.status === 'Published' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}">${c.status}</span>
+                        <p class="text-[10px] text-slate-400 font-bold tracking-widest">${c.hits || 0} VIEWS</p>
                     </td>
                     <td class="px-8 py-5">
-                        <p class="text-[10px] text-slate-400 font-medium">${new Date(c.updated_at || c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border ${c.status === 'Published' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}">${c.status}</span>
                     </td>
                     <td class="px-8 py-5 text-right">
                         <div class="flex justify-end gap-2">
@@ -1621,6 +1619,7 @@
             form.reset();
             document.getElementById('course-video-iframe').classList.add('hidden');
             document.getElementById('course-preview-placeholder').classList.remove('hidden');
+            document.getElementById('c-thumbnail-manual').value = '';
             
             if (isEdit && id) {
                 const c = cachedCourses.find(item => item.id === id);
@@ -1633,6 +1632,12 @@
                     document.getElementById('c-url').value = c.youtube_url;
                     document.getElementById('c-desc').value = c.description;
                     document.getElementById('c-created-at').value = c.created_at;
+                    document.getElementById('c-thumbnail').value = c.thumbnail_url;
+                    // Check if thumbnail is manual or auto
+                    const autoThumb = `https://img.youtube.com/vi/${c.video_id}/maxresdefault.jpg`;
+                    if (c.thumbnail_url !== autoThumb && !c.thumbnail_url.includes('youtube.com')) {
+                        document.getElementById('c-thumbnail-manual').value = c.thumbnail_url;
+                    }
                     document.querySelector(`input[name="c-status"][value="${c.status}"]`).checked = true;
                     updateCourseVideoPreview();
                 }

@@ -881,6 +881,7 @@ function doPost(e) {
       case "get_courses": return jsonRes(getCourses(data, cfg));
       case "save_course": return jsonRes(saveCourse(data));
       case "delete_course": return jsonRes(deleteCourse(data));
+      case "track_course_hit": return jsonRes(trackCourseHit(data));
       case "get_member_courses": return jsonRes(getMemberCourses(data, cfg));
 
       // DIAGNOSTIC & MONITORING ACTIONS
@@ -3775,7 +3776,7 @@ function mustCourseSheet_() {
   let s = ss.getSheetByName("Courses");
   if (!s) {
     s = ss.insertSheet("Courses");
-    s.appendRow(["id", "title", "description", "youtube_url", "video_id", "category", "status", "thumbnail_url", "created_at", "updated_at"]);
+    s.appendRow(["id", "title", "description", "youtube_url", "video_id", "category", "status", "thumbnail_url", "created_at", "updated_at", "hits", "is_deleted"]);
     s.setFrozenRows(1);
   }
   return s;
@@ -3788,6 +3789,7 @@ function getCourses(d, cfg) {
     const data = s.getDataRange().getValues();
     const courses = [];
     for (let i = 1; i < data.length; i++) {
+      if (String(data[i][11]) === "true") continue; // Skip soft deleted
       courses.push({
         id: String(data[i][0]),
         title: String(data[i][1]),
@@ -3798,7 +3800,8 @@ function getCourses(d, cfg) {
         status: String(data[i][6]),
         thumbnail_url: String(data[i][7]),
         created_at: String(data[i][8]),
-        updated_at: String(data[i][9])
+        updated_at: String(data[i][9]),
+        hits: Number(data[i][10] || 0)
       });
     }
     return { status: "success", data: courses };
@@ -3814,17 +3817,30 @@ function saveCourse(d) {
     const isEdit = String(d.is_edit) === "true";
     const now = new Date().toISOString();
     
+    // Server-side validation & Sanitization
+    const title = normalizePlainText_(d.title).substring(0, 100);
+    const description = String(d.description || "").trim(); // Allow basic HTML if needed, but GAS normalizePlainText is safer
+    const youtubeUrl = String(d.youtube_url || "").trim();
+    const videoId = String(d.video_id || "").trim();
+    const category = normalizePlainText_(d.category || "General");
+    const status = normalizePlainText_(d.status || "Draft");
+    const thumbnail = String(d.thumbnail_url || "").trim();
+
+    if (!title || !videoId) throw new Error("Judul dan Video ID wajib diisi");
+
     const rowData = [
       String(d.id).trim(),
-      normalizePlainText_(d.title),
-      normalizePlainText_(d.description),
-      String(d.youtube_url).trim(),
-      String(d.video_id).trim(),
-      normalizePlainText_(d.category),
-      normalizePlainText_(d.status || "Draft"),
-      String(d.thumbnail_url).trim(),
+      title,
+      description,
+      youtubeUrl,
+      videoId,
+      category,
+      status,
+      thumbnail,
       isEdit ? String(d.created_at) : now,
-      now
+      now,
+      isEdit ? Number(d.hits || 0) : 0,
+      "false" // is_deleted
     ];
 
     if (isEdit) {
@@ -3854,11 +3870,31 @@ function deleteCourse(d) {
 
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][0]) === id) {
-        s.deleteRow(i + 1);
-        return withPublicCacheState_({ status: "success", message: "Course berhasil dihapus" }, bumpPublicCacheState_(["dashboard"]));
+        // Implement Soft Delete
+        s.getRange(i + 1, 12).setValue("true");
+        return withPublicCacheState_({ status: "success", message: "Course berhasil dihapus (soft delete)" }, bumpPublicCacheState_(["dashboard"]));
       }
     }
     return { status: "error", message: "Course tidak ditemukan" };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function trackCourseHit(d) {
+  try {
+    const s = mustCourseSheet_();
+    const data = s.getDataRange().getValues();
+    const id = String(d.id).trim();
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === id) {
+        const currentHits = Number(data[i][10] || 0);
+        s.getRange(i + 1, 11).setValue(currentHits + 1);
+        return { status: "success" };
+      }
+    }
+    return { status: "error", message: "Course not found" };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
@@ -3869,7 +3905,6 @@ function getMemberCourses(d, cfg) {
     const email = String(d.email || "").trim().toLowerCase();
     if (!email) throw new Error("Email wajib diisi");
 
-    // 1. Ambil list ID Produk yang sudah Lunas oleh member ini
     const orders = mustSheet_("Orders").getDataRange().getValues();
     const lunasProductIds = [];
     for (let i = 1; i < orders.length; i++) {
@@ -3878,15 +3913,14 @@ function getMemberCourses(d, cfg) {
       }
     }
 
-    // 2. Jika tidak ada pembelian, kembalikan kosong
     if (lunasProductIds.length === 0) return { status: "success", data: [] };
 
-    // 3. Ambil data E-Course (Sheet Courses)
     const s = mustCourseSheet_();
     const data = s.getDataRange().getValues();
     const allCourses = [];
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][6]) === "Published") { // Hanya yang sudah dipublish
+      // Respect status Published AND is_deleted false
+      if (String(data[i][6]) === "Published" && String(data[i][11]) !== "true") {
         allCourses.push({
           id: String(data[i][0]),
           title: String(data[i][1]),
@@ -3894,14 +3928,11 @@ function getMemberCourses(d, cfg) {
           video_id: String(data[i][4]),
           category: String(data[i][5]),
           thumbnail_url: String(data[i][7]),
-          created_at: String(data[i][8])
+          created_at: String(data[i][8]),
+          hits: Number(data[i][10] || 0)
         });
       }
     }
-
-    // 4. Integrasi: Saat ini kita asumsikan semua e-course terbuka untuk member yang sudah membeli produk apapun
-    // Jika ingin lebih spesifik (misal: Course A hanya untuk Produk A), kita perlu mapping di Access_Rules.
-    // Untuk MVP, kita tampilkan semua e-course Published kepada member yang sudah Lunas minimal 1 order.
     return { status: "success", data: allCourses };
   } catch (e) {
     return { status: "error", message: e.toString() };
